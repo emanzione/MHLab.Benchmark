@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>0.0.1</Version>
+    <Authors>Emanuele Manzione</Authors>
+    <Company>MHLab</Company>
+    <Description>A library to measure and profile some metrics of your code (execution time, average execution time, garbage collections).</Description>
+    <PackageProjectUrl>https://github.com/manhunterita/MHLab.Benchmark</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/manhunterita/MHLab.Benchmark</RepositoryUrl>
   </PropertyGroup>
 
 </Project>
