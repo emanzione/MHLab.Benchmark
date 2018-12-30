@@ -76,5 +76,17 @@ namespace MHLab.Benchmark
                 Iterations = iterations
             };
         }
+
+        public static BenchmarkResult[] Start(Action[] actionsToProfile, BenchmarkParameters parameters)
+        {
+            var results = new BenchmarkResult[actionsToProfile.Length];
+
+            for (var i = 0; i < actionsToProfile.Length; i++)
+            {
+                results[i] = Start(actionsToProfile[i], parameters);
+            }
+
+            return results;
+        }
     }
 }
