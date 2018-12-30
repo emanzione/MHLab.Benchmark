@@ -34,3 +34,55 @@ Console.WriteLine("Garbage collections (0): " 		+ result.GarbageCollections0Coun
 Console.WriteLine("Garbage collections (1): " 		+ result.GarbageCollections1Count);
 Console.WriteLine("Garbage collections (2): " 		+ result.GarbageCollections2Count);
 ```
+
+## Comparing results
+A good thing when you benchmark code is to compare results from different ways to solve a problem.
+To do so, check this snippet:
+
+```csharp
+private static void ActionToTest()
+{
+    // Perform your task to profile here
+}
+
+private static void ActionToTest1()
+{
+    // Perform your task to profile here
+}
+
+private static void ActionToTest2()
+{
+    // Perform your task to profile here
+}
+
+private static void ActionToTest3()
+{
+    // Perform your task to profile here
+}
+
+var actions = new Action[]
+{
+    ActionToTest1,
+    ActionToTest2,
+    ActionToTest3
+};
+
+var comparisons = Benchmarker.Compare(ActionToTest, parameters, actions);
+
+Console.WriteLine("Method comparisons executed against ActionToTest method:\n");
+for (int i = 0; i < comparisons.Length; i++)
+{
+    var comparison = comparisons[i];
+
+    var line = actions[i].Method.Name + "\t";
+    line += comparison.ElapsedMillisecondsDifferencePercentage + "% (" +comparison.ElapsedMillisecondsDifference + " ms)\t";
+    line += comparison.ElapsedTicksDifferencePercentage + "% (" + comparison.ElapsedTicksDifference + " ticks)\t";
+    line += comparison.AverageMillisecondsDifferencePercentage + "% (" + comparison.AverageMillisecondsDifference + " ms)\t";
+    line += comparison.AverageTicksDifferencePercentage + "% (" + comparison.AverageTicksDifference + " ticks)\t";
+    line += comparison.GCCollections0DifferencePercentage + "% (" + comparison.GCCollections0Difference + ")\t";
+    line += comparison.GCCollections1DifferencePercentage + "% (" + comparison.GCCollections1Difference + ")\t";
+    line += comparison.GCCollections2DifferencePercentage + "% (" + comparison.GCCollections2Difference + ")\t";
+
+    Console.WriteLine(line);
+}
+```
