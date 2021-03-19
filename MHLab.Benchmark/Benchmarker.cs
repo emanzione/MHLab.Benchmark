@@ -3,30 +3,39 @@ using System.Diagnostics;
 
 namespace MHLab.Benchmark
 {
-    public struct BenchmarkParameters
+    public class BenchmarkParameters
     {
         public long BenchmarkIterations;
 
-        public bool PerformWarmup;
-        public long WarmupIterations;
-        public Action WarmupAction;
+        public bool   PerformWarmup;
+        public long   WarmupIterations;
+        public Action InitializeAction;
     }
 
-    public struct BenchmarkResult
+    public class BenchmarkResult
     {
+        public string Name;
+        
         public TimeSpan Elapsed;
-        public long ElapsedMilliseconds;
-        public long ElapsedTicks;
-        public long AverageMilliseconds;
-        public long AverageTicks;
-        public int GarbageCollections0Count;
-        public int GarbageCollections1Count;
-        public int GarbageCollections2Count;
-        public long Iterations;
+        public long     ElapsedMilliseconds;
+        public long     ElapsedTicks;
+        public long     AverageMilliseconds;
+        public long     AverageTicks;
+        public int      GarbageCollections0Count;
+        public int      GarbageCollections1Count;
+        public int      GarbageCollections2Count;
+        
+        public BenchmarkResult() {}
+
+        public BenchmarkResult(string name)
+        {
+            Name = name;
+        }
 
         public override string ToString()
         {
-            return $"Execution Time (TimeSpan): {Elapsed}\n"                +
+            return $"--> {Name} <--\n"                +
+                   $"Execution Time (TimeSpan): {Elapsed}\n"                +
                    $"Execution Time (ms): {ElapsedMilliseconds}\n"          +
                    $"Execution Ticks: {ElapsedTicks}\n"                     +
                    $"Average Execution Time (ms): {AverageMilliseconds}\n"  +
@@ -37,7 +46,7 @@ namespace MHLab.Benchmark
         }
     }
 
-    public struct BenchmarkComparison
+    public class BenchmarkComparison
     {
         public BenchmarkResult CompareFrom;
         public BenchmarkResult CompareTo;
@@ -66,84 +75,118 @@ namespace MHLab.Benchmark
         internal void Compare(BenchmarkResult from, BenchmarkResult to)
         {
             CompareFrom = from;
-            CompareTo = to;
+            CompareTo   = to;
 
-            ElapsedMillisecondsDifference = to.ElapsedMilliseconds - from.ElapsedMilliseconds;
-            ElapsedMillisecondsDifferencePercentage = (ElapsedMillisecondsDifference / from.ElapsedMilliseconds) * 100;
+            ElapsedMillisecondsDifference           = to.ElapsedMilliseconds - from.ElapsedMilliseconds;
+            if (from.ElapsedMilliseconds > 0)
+                ElapsedMillisecondsDifferencePercentage = (ElapsedMillisecondsDifference / from.ElapsedMilliseconds) * 100;
 
-            ElapsedTicksDifference = to.ElapsedTicks - from.ElapsedTicks;
-            ElapsedTicksDifferencePercentage = (ElapsedTicksDifference / from.ElapsedTicks) * 100;
+            ElapsedTicksDifference           = to.ElapsedTicks - from.ElapsedTicks;
+            if (from.ElapsedTicks > 0)
+                ElapsedTicksDifferencePercentage = (ElapsedTicksDifference / from.ElapsedTicks) * 100;
 
-            AverageMillisecondsDifference = to.AverageMilliseconds - from.AverageMilliseconds;
-            AverageMillisecondsDifferencePercentage = (AverageMillisecondsDifference / from.AverageMilliseconds) * 100;
+            AverageMillisecondsDifference           = to.AverageMilliseconds - from.AverageMilliseconds;
+            if (from.AverageMilliseconds > 0)
+                AverageMillisecondsDifferencePercentage = (AverageMillisecondsDifference / from.AverageMilliseconds) * 100;
 
-            AverageTicksDifference = to.AverageTicks - from.AverageTicks;
+            AverageTicksDifference           = to.AverageTicks - from.AverageTicks;
             AverageTicksDifferencePercentage = (AverageTicksDifference / from.AverageTicks) * 100;
 
-            GCCollections0Difference = to.GarbageCollections0Count - from.GarbageCollections0Count;
-            GCCollections0DifferencePercentage = (GCCollections0Difference / from.GarbageCollections0Count) * 100;
+            GCCollections0Difference           = to.GarbageCollections0Count - from.GarbageCollections0Count;
+            if (from.GarbageCollections0Count > 0)
+                GCCollections0DifferencePercentage = (GCCollections0Difference / from.GarbageCollections0Count) * 100;
 
-            GCCollections1Difference = to.GarbageCollections1Count - from.GarbageCollections1Count;
-            GCCollections1DifferencePercentage = (GCCollections1Difference / from.GarbageCollections1Count) * 100;
+            GCCollections1Difference           = to.GarbageCollections1Count - from.GarbageCollections1Count;
+            if (from.GarbageCollections1Count > 0)
+                GCCollections1DifferencePercentage = (GCCollections1Difference / from.GarbageCollections1Count) * 100;
 
-            GCCollections2Difference = to.GarbageCollections2Count - from.GarbageCollections2Count;
-            GCCollections2DifferencePercentage = (GCCollections2Difference / from.GarbageCollections2Count) * 100;
+            GCCollections2Difference           = to.GarbageCollections2Count - from.GarbageCollections2Count;
+            if (from.GarbageCollections2Count > 0)
+                GCCollections2DifferencePercentage = (GCCollections2Difference / from.GarbageCollections2Count) * 100;
         }
     }
 
-    public class Benchmarker
+    public class Benchmarker : IDisposable
     {
-        public static BenchmarkResult Start(Action actionToProfile, BenchmarkParameters parameters)
+        private readonly Stopwatch           _timer;
+        private readonly BenchmarkResult     _result;
+
+        private readonly int _initialCollection0Count;
+        private readonly int _initialCollection1Count;
+        private readonly int _initialCollection2Count;
+
+        private Benchmarker(BenchmarkResult result)
+        {
+            _timer      = Stopwatch.StartNew();
+            _result     = result;
+
+            // Collect current collections counts, in order to calculate 
+            // them correctly later.
+            _initialCollection0Count = GC.CollectionCount(0);
+            _initialCollection1Count = GC.CollectionCount(1);
+            _initialCollection2Count = GC.CollectionCount(2);
+        }
+
+        public void Dispose()
+        {
+            _timer.Stop();
+
+            // Collect results
+            _result.GarbageCollections0Count = GC.CollectionCount(0) - _initialCollection0Count;
+            _result.GarbageCollections1Count = GC.CollectionCount(0) - _initialCollection1Count;
+            _result.GarbageCollections2Count = GC.CollectionCount(0) - _initialCollection2Count;
+            _result.Elapsed                  = _timer.Elapsed;
+            _result.ElapsedMilliseconds      = _timer.ElapsedMilliseconds;
+            _result.ElapsedTicks             = _timer.ElapsedTicks;
+            _result.AverageMilliseconds      = _timer.ElapsedMilliseconds;
+            _result.AverageTicks             = _timer.ElapsedTicks;
+        }
+
+        public static Benchmarker StartScope(BenchmarkResult result)
+        {
+            return new Benchmarker(result);
+        }
+
+        private static void PerformWarmup(Action actionToProfile, BenchmarkParameters parameters)
         {
             // Do a warm-up spin if warmup is enabled
-            if (parameters.PerformWarmup)
+            if (!parameters.PerformWarmup) return;
+            
+            parameters.InitializeAction?.Invoke();
+            
+            for (long i = 0; i < parameters.WarmupIterations; i++)
             {
-                parameters.WarmupAction?.Invoke();
-                for (long i = 0; i < parameters.WarmupIterations; i++)
+                actionToProfile.Invoke();
+            }
+        }
+
+        public static BenchmarkResult Start(Action actionToProfile, BenchmarkParameters parameters)
+        {
+            PerformWarmup(actionToProfile, parameters);
+
+            var result = new BenchmarkResult(actionToProfile.Method.Name);
+            
+            var iterations = parameters.BenchmarkIterations;
+
+            using (var benchmark = StartScope(result))
+            {
+                for (var i = 0; i < iterations; i++)
                 {
+                    /* TODO:
+                     I had to call Invoke on the passed action. This is a virtual call,
+                     that is slower. Find a way to get rid of it. 
+                     */
                     actionToProfile.Invoke();
                 }
             }
 
-            // Collect current collections counts, in order to calculate 
-            // them correctly later.
-            var initialCollection0Count = GC.CollectionCount(0);
-            var initialCollection1Count = GC.CollectionCount(1);
-            var initialCollection2Count = GC.CollectionCount(2);
-
-            var iterations = parameters.BenchmarkIterations;
-
-            var stopwatch = Stopwatch.StartNew();
-            for (long i = 0; i < iterations; i++)
-            {
-                // TODO: For generic purpose, I had to call Invoke on the
-                // TODO: passed action. This generates a virtual call,
-                // TODO: that is slower. Find a way to get rid of it.
-                actionToProfile.Invoke();
-            }
-            stopwatch.Stop();
-
-            // Calculate collections counts correctly.
-            var collection0Count = GC.CollectionCount(0) - initialCollection0Count;
-            var collection1Count = GC.CollectionCount(1) - initialCollection1Count;
-            var collection2Count = GC.CollectionCount(2) - initialCollection2Count;
-
-            // Generate the benchmark results.
-            return new BenchmarkResult()
-            {
-                GarbageCollections0Count = collection0Count,
-                GarbageCollections1Count = collection1Count,
-                GarbageCollections2Count = collection2Count,
-                Elapsed = stopwatch.Elapsed,
-                ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
-                ElapsedTicks = stopwatch.ElapsedTicks,
-                AverageMilliseconds = stopwatch.ElapsedMilliseconds / iterations,
-                AverageTicks = stopwatch.ElapsedTicks / iterations,
-                Iterations = iterations
-            };
+            result.AverageMilliseconds /= iterations;
+            result.AverageTicks        /= iterations;
+            
+            return result;
         }
 
-        public static BenchmarkResult[] Start(Action[] actionsToProfile, BenchmarkParameters parameters)
+        public static BenchmarkResult[] StartMultiple(Action[] actionsToProfile, BenchmarkParameters parameters)
         {
             var results = new BenchmarkResult[actionsToProfile.Length];
 
@@ -155,16 +198,21 @@ namespace MHLab.Benchmark
             return results;
         }
 
-        public static BenchmarkComparison[] Compare(Action mainAction, BenchmarkParameters parameters, params Action[] actions)
+        public static BenchmarkComparison[] StartAndCompare(Action baseline, BenchmarkParameters parameters, params Action[] actions)
         {
-            var mainResult = Start(mainAction, parameters);
-            var otherResults = Start(actions, parameters);
+            var mainResult   = Start(baseline, parameters);
+            var otherResults = StartMultiple(actions, parameters);
 
-            var comparisons = new BenchmarkComparison[actions.Length];
-            for (int i = 0; i < actions.Length; i++)
+            return Compare(mainResult, otherResults);
+        }
+
+        public static BenchmarkComparison[] Compare(BenchmarkResult baseline, params BenchmarkResult[] comparing)
+        {
+            var comparisons = new BenchmarkComparison[comparing.Length];
+            for (int i = 0; i < comparing.Length; i++)
             {
                 var comparison = new BenchmarkComparison();
-                comparison.Compare(mainResult, otherResults[i]);
+                comparison.Compare(baseline, comparing[i]);
                 comparisons[i] = comparison;
             }
 

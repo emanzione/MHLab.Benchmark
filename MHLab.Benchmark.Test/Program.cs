@@ -9,66 +9,72 @@ namespace MHLab.Benchmark.Test
         {
             var parameters = new BenchmarkParameters()
             {
-                BenchmarkIterations = 100_000_000,
+                BenchmarkIterations = 100_000,
                 PerformWarmup = true,
-                WarmupAction = null,
+                InitializeAction = null,
                 WarmupIterations = 1000
             };
             
             StartSingle(parameters);
             StartMultiple(parameters);
+            StartScope(parameters);
             Compare(parameters);
-
-            Console.ReadLine();
         }
 
         private static void StartSingle(BenchmarkParameters parameters)
         {
+            Console.WriteLine("=== Start Single ===");
+            
             var result = Benchmarker.Start(ActionToTest, parameters);
 
-            Console.WriteLine("Execution time (TimeSpan): " + result.Elapsed);
-            Console.WriteLine("Execution time (ms): " + result.ElapsedMilliseconds);
-            Console.WriteLine("Execution ticks: " + result.ElapsedTicks);
-            Console.WriteLine("Average execution time (ms): " + result.AverageMilliseconds);
-            Console.WriteLine("Average execution ticks: " + result.AverageTicks);
-            Console.WriteLine("Garbage collections (0): " + result.GarbageCollections0Count);
-            Console.WriteLine("Garbage collections (1): " + result.GarbageCollections1Count);
-            Console.WriteLine("Garbage collections (2): " + result.GarbageCollections2Count);
+            Console.WriteLine(result.ToString());
         }
 
         private static void StartMultiple(BenchmarkParameters parameters)
         {
+            Console.WriteLine("=== Start Multiple ===");
+            
             var actions = new Action[]
             {
                 ActionToTest,
                 ActionToTest1
             };
 
-            var results = Benchmarker.Start(actions, parameters);
+            var results = Benchmarker.StartMultiple(actions, parameters);
 
             for (int i = 0; i < actions.Length; i++)
             {
                 var result = results[i];
-                Console.WriteLine("Execution time (TimeSpan): " + result.Elapsed);
-                Console.WriteLine("Execution time (ms): " + result.ElapsedMilliseconds);
-                Console.WriteLine("Execution ticks: " + result.ElapsedTicks);
-                Console.WriteLine("Average execution time (ms): " + result.AverageMilliseconds);
-                Console.WriteLine("Average execution ticks: " + result.AverageTicks);
-                Console.WriteLine("Garbage collections (0): " + result.GarbageCollections0Count);
-                Console.WriteLine("Garbage collections (1): " + result.GarbageCollections1Count);
-                Console.WriteLine("Garbage collections (2): " + result.GarbageCollections2Count);
-                Console.WriteLine();
+                Console.WriteLine(result.ToString());
             }
+        }
+
+        private static void StartScope(BenchmarkParameters parameters)
+        {
+            Console.WriteLine("=== Start Scope ===");
+            
+            var iterations = parameters.BenchmarkIterations;
+            var result     = new BenchmarkResult();
+
+            using (var benchmark = Benchmarker.StartScope(result))
+            {
+                for (long i = 0; i < iterations; i++)
+                    ActionToTest();
+            }
+            
+            Console.WriteLine(result.ToString());
         }
 
         private static void Compare(BenchmarkParameters parameters)
         {
+            Console.WriteLine("=== Start and Compare ===");
+            
             var actions = new Action[]
             {
                 ActionToTest1
             };
 
-            var comparisons = Benchmarker.Compare(ActionToTest, parameters, actions);
+            var comparisons = Benchmarker.StartAndCompare(ActionToTest, parameters, actions);
 
             Console.WriteLine("Method comparisons executed against ActionToTest method:\n");
             Console.WriteLine("Method\tTotal ms\tTotal ticks\tAvg. ms\tAvg. ticks\tGC0\tGC1\tGC2\t");
