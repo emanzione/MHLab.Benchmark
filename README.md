@@ -5,7 +5,7 @@ A single-file utility to measure and profile some metrics from your code executi
 [![Nuget](https://img.shields.io/nuget/v/MHLab.Benchmark)](https://www.nuget.org/packages/MHLab.Benchmark/)
 
 ## Why?
-Profiling/measuring how a piece of code performs is always a good thing. It helps to optimize resources usage and, consequentially, it saves costs!
+Profiling/measuring how a piece of code performs is always a good thing. It helps to optimize resources usage and it saves costs!
 
 I know that the great [Benchmark.NET](https://github.com/dotnet/BenchmarkDotNet) already exists and you really should use it for precise and in-depth profiling, but sometimes I just wanted to test a little snippet of code in a single line, without too many settings.
 
@@ -78,6 +78,7 @@ Garbage Collections (2): {result.GarbageCollections2Count}
 
 ## Comparing results
 A good thing when you benchmark your code is comparing results from different methods against a baseline and check what changed.
+
 To do so, check this snippet:
 
 ```csharp
