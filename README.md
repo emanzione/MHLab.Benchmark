@@ -1,6 +1,9 @@
 # MHLab.Benchmark
 A single-file utility to measure and profile some metrics from your code execution (execution time, average execution time, garbage collections).
 
+![Build](https://github.com/manhunterita/MHLab.Benchmark/workflows/Build/badge.svg)
+[![Nuget](https://img.shields.io/nuget/v/MHLab.Benchmark)](https://www.nuget.org/packages/MHLab.Benchmark/)
+
 ## Why?
 Profiling/measuring how a piece of code performs is always a good thing. It helps to optimize resources usage and, consequentially, it saves costs!
 
