@@ -1,88 +1,103 @@
 # MHLab.Benchmark
-A library to measure and profile some metrics from your code execution (execution time, average execution time, garbage collections).
+A single-file utility to measure and profile some metrics from your code execution (execution time, average execution time, garbage collections).
 
 ## Why?
 Profiling/measuring how a piece of code performs is always a good thing. It helps to optimize resources usage and, consequentially, it saves costs!
 
-## How to use it
-It is really simple to use this library. Just add it as reference from NuGet or clone this repository and add the library in your project.
+I know that the great [Benchmark.NET](https://github.com/dotnet/BenchmarkDotNet) already exists and you really should use it for precise and in-depth profiling, but sometimes I just wanted to test a little snippet of code in a single line, without too many settings.
 
-When you did it, just follow this snippet:
+## How to use it
+It is really simple to use this utility. Just add it as reference from NuGet or include `Benchmarker.cs` file into your project.
+
+Then just take a look at the following snippets.
+
+Prepare your benchmark parameters:
+
+```csharp
+var parameters = new BenchmarkParameters()
+{
+    // How many times your action will be invoked.
+    BenchmarkIterations = 100_000,
+
+    // Determines if the warmup will be performed.
+    PerformWarmup = true,
+
+    // The initialization action that will be invoked before the warmup.
+    InitializeAction = null,
+
+    // How many times your action will be invoked without collecting results.
+    WarmupIterations = 1000
+};
+```
+
+Then you are ready to collect metrics from your code:
 
 ```csharp
 private static void ActionToTest()
 {
-    // Perform your task to profile here
+    // Your code to profile here
 }
 
-var parameters = new BenchmarkParameters()
+BenchmarkResult result = Benchmarker.Start(ActionToTest, parameters);
+```
+
+Or, if you have particular needs and the classic linear loop performed by this utility is not enough for you, simply call `StartScope` to define the benchmarking logic by yourself:
+
+```csharp
+BenchmarkResult result = new BenchmarkResult("MyCode-1");
+
+using (var benchmark = Benchmarker.StartScope(result))
 {
-    BenchmarkIterations = 100_000_000,
-    PerformWarmup = true,
-    WarmupAction = null,
-    WarmupIterations = 1000
-};
+    // Your code to profile here
+}
 
-var result = Benchmarker.Start(ActionToTest, parameters);
+// You can now use the result here, it has been populated with metrics.
+```
 
-Console.WriteLine("Execution time (TimeSpan): " 	+ result.Elapsed);
-Console.WriteLine("Execution time (ms): " 			+ result.ElapsedMilliseconds);
-Console.WriteLine("Execution ticks: " 				+ result.ElapsedTicks);
-Console.WriteLine("Average execution time (ms): " 	+ result.AverageMilliseconds);
-Console.WriteLine("Average execution ticks: " 		+ result.AverageTicks);
-Console.WriteLine("Garbage collections (0): " 		+ result.GarbageCollections0Count);
-Console.WriteLine("Garbage collections (1): " 		+ result.GarbageCollections1Count);
-Console.WriteLine("Garbage collections (2): " 		+ result.GarbageCollections2Count);
+Also, take in mind that `BenchmarkResult` has a `ToString` override to show results easily:
+
+```csharp
+Console.WriteLine(result.ToString());
+
+/*
+Output:
+
+Execution Time (TimeSpan): {result.Elapsed}
+Execution Time (ms): {result.ElapsedMilliseconds}
+Execution Ticks: {result.ElapsedTicks}
+Average Execution Time (ms): {result.AverageMilliseconds}
+Average Execution Ticks: {result.AverageTicks}
+Garbage Collections (0): {result.GarbageCollections0Count}
+Garbage Collections (1): {result.GarbageCollections1Count}
+Garbage Collections (2): {result.GarbageCollections2Count}
+*/
 ```
 
 ## Comparing results
-A good thing when you benchmark code is to compare results from different ways to solve a problem.
+A good thing when you benchmark your code is comparing results from different methods against a baseline and check what changed.
 To do so, check this snippet:
 
 ```csharp
 private static void ActionToTest()
 {
-    // Perform your task to profile here
+    // Your code to profile here
 }
 
 private static void ActionToTest1()
 {
-    // Perform your task to profile here
+    // Your code to profile here
 }
 
 private static void ActionToTest2()
 {
-    // Perform your task to profile here
-}
-
-private static void ActionToTest3()
-{
-    // Perform your task to profile here
+    // Your code to profile here
 }
 
 var actions = new Action[]
 {
     ActionToTest1,
-    ActionToTest2,
-    ActionToTest3
+    ActionToTest2
 };
 
-var comparisons = Benchmarker.Compare(ActionToTest, parameters, actions);
-
-Console.WriteLine("Method comparisons executed against ActionToTest method:\n");
-for (int i = 0; i < comparisons.Length; i++)
-{
-    var comparison = comparisons[i];
-
-    var line = actions[i].Method.Name + "\t";
-    line += comparison.ElapsedMillisecondsDifferencePercentage + "% (" +comparison.ElapsedMillisecondsDifference + " ms)\t";
-    line += comparison.ElapsedTicksDifferencePercentage + "% (" + comparison.ElapsedTicksDifference + " ticks)\t";
-    line += comparison.AverageMillisecondsDifferencePercentage + "% (" + comparison.AverageMillisecondsDifference + " ms)\t";
-    line += comparison.AverageTicksDifferencePercentage + "% (" + comparison.AverageTicksDifference + " ticks)\t";
-    line += comparison.GCCollections0DifferencePercentage + "% (" + comparison.GCCollections0Difference + ")\t";
-    line += comparison.GCCollections1DifferencePercentage + "% (" + comparison.GCCollections1Difference + ")\t";
-    line += comparison.GCCollections2DifferencePercentage + "% (" + comparison.GCCollections2Difference + ")\t";
-
-    Console.WriteLine(line);
-}
+BenchmarkComparison[] comparisons = Benchmarker.StartAndCompare(ActionToTest, parameters, actions);
 ```
