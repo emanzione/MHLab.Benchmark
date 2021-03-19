@@ -23,6 +23,18 @@ namespace MHLab.Benchmark
         public int GarbageCollections1Count;
         public int GarbageCollections2Count;
         public long Iterations;
+
+        public override string ToString()
+        {
+            return $"Execution Time (TimeSpan): {Elapsed}\n"                +
+                   $"Execution Time (ms): {ElapsedMilliseconds}\n"          +
+                   $"Execution Ticks: {ElapsedTicks}\n"                     +
+                   $"Average Execution Time (ms): {AverageMilliseconds}\n"  +
+                   $"Average Execution Ticks: {AverageTicks}\n"             +
+                   $"Garbage Collections (0): {GarbageCollections0Count}\n" +
+                   $"Garbage Collections (1): {GarbageCollections1Count}\n" +
+                   $"Garbage Collections (2): {GarbageCollections2Count}";
+        }
     }
 
     public struct BenchmarkComparison
